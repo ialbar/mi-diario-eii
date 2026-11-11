@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
 import { Activity, Camera, BookOpen, PlusCircle, LayoutDashboard, CheckCircle2, ChevronRight, FileText, Download } from 'lucide-react';
 
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'eii-tracker-app';
-
 // --- DEFAULT FORM STATE ---
 const getEmptyForm = () => ({
   date: new Date().toISOString().split('T')[0],
@@ -25,19 +23,19 @@ export default function EIITrackerApp() {
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
 
-  // Load data on mount
+  // Cargar datos desde localStorage al iniciar
   useEffect(() => {
-    const loadData = () => {
-      try {
-        const storedLogs = localStorage.getItem(`logs_${appId}`);
-        if (storedLogs) {
-          setLogs(JSON.parse(storedLogs));
-        }
-      } catch (error) {
-        console.error("Error loading data from localStorage:", error);
+    try {
+      const storedLogs = localStorage.getItem('eii_logs');
+      if (storedLogs) {
+        const parsedLogs = JSON.parse(storedLogs);
+        // Ordenamos las fechas
+        parsedLogs.sort((a, b) => new Date(a.date) - new Date(b.date));
+        setLogs(parsedLogs);
       }
-    };
-    loadData();
+    } catch (error) {
+      console.error("Error leyendo de localStorage:", error);
+    }
   }, []);
 
   const updateNested = (category, field, value) => {
@@ -47,19 +45,25 @@ export default function EIITrackerApp() {
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setLoading(true);
     setSaveStatus(null);
     try {
+      // Simular un pequeño retraso de red
+      await new Promise(resolve => setTimeout(resolve, 600));
+
       const newLog = {
         ...formData,
         id: Date.now().toString(),
         timestamp: new Date().toISOString()
       };
       
+      // Guardado en memoria local (localStorage)
       const updatedLogs = [...logs, newLog];
+      updatedLogs.sort((a, b) => new Date(a.date) - new Date(b.date));
+      
       setLogs(updatedLogs);
-      localStorage.setItem(`logs_${appId}`, JSON.stringify(updatedLogs));
+      localStorage.setItem('eii_logs', JSON.stringify(updatedLogs));
       
       setSaveStatus('success');
       setTimeout(() => {
@@ -68,7 +72,7 @@ export default function EIITrackerApp() {
         setActiveTab('dashboard');
       }, 1500);
     } catch (error) {
-      console.error("Error saving doc: ", error);
+      console.error("Error guardando documento localmente: ", error);
       setSaveStatus('error');
     }
     setLoading(false);
